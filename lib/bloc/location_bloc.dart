@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:location/location.dart';
+import 'package:geolocator/geolocator.dart';
+
 import 'package:location_example/bloc/user_location.dart';
 part 'location_state.dart';
 part 'location_event.dart';
 
 class LocationBloc extends Bloc<LocationEvent, LocationState> {
-  late StreamSubscription _subscription;
+  LocationSettings locationSettings = const LocationSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 100,
+  );
+  late StreamSubscription<Position> _subscription;
 
   LocationBloc() : super(LocationState()) {
     on<ListenLocationEvent>(_listenLocation);
@@ -18,10 +23,12 @@ class LocationBloc extends Bloc<LocationEvent, LocationState> {
     ListenLocationEvent event,
     Emitter<LocationState> emit,
   ) async {
-    _subscription = Location().onLocationChanged.listen((LocationData current) {
-      if (current.latitude != null && current.longitude != null) {
+    _subscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position? position) {
+      if (position != null) {
         final userLocation = UserLocation(
-            latitude: current.latitude, longitude: current.longitude);
+            latitude: position.latitude, longitude: position.longitude);
 
         add(UpdateLocationEvent(userLocation));
       }
